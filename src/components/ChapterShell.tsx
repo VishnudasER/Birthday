@@ -2,10 +2,11 @@
 // ChapterShell — wraps every chapter with nav, progress, skip
 // ============================================================
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, SkipForward, Menu, X, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SkipForward, Menu, X, RotateCcw, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CHAPTERS } from '@/hooks/useJourney';
 import { cn } from '@/lib/utils';
+import { JourneyResponsesModal } from './JourneyResponsesModal';
 
 interface ChapterShellProps {
   currentChapter: number;
@@ -33,6 +34,7 @@ export function ChapterShell({
   children,
 }: ChapterShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [responsesOpen, setResponsesOpen] = useState(false);
   const chapter = CHAPTERS.find((c) => c.id === currentChapter)!;
   const isFirst = currentChapter === 1;
   const isLast = currentChapter === CHAPTERS.length;
@@ -152,8 +154,17 @@ export function ChapterShell({
         }}
       >
         <div className="flex items-center justify-between px-6 py-3">
-          <div className="text-xs text-rose-400 font-hand">
-            {progressPercent}% of the journey
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs text-rose-400 font-hand">
+              {progressPercent}% of the journey
+            </span>
+            <button
+              onClick={() => setResponsesOpen(true)}
+              className="flex items-center gap-1 text-xs font-hand font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-200 transition-colors cursor-pointer"
+            >
+              <FileText size={12} />
+              <span>📬 Responses</span>
+            </button>
           </div>
           {!isLast && (
             <button
@@ -198,6 +209,17 @@ export function ChapterShell({
                 </button>
               </div>
 
+              {/* View Responses button inside menu */}
+              <div className="p-3 border-b border-blush/60 bg-white/40">
+                <button
+                  onClick={() => { setResponsesOpen(true); setMenuOpen(false); }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-hand font-bold text-base shadow-sm hover:opacity-95 transition-all cursor-pointer"
+                >
+                  <FileText size={16} />
+                  <span>📬 View Our Journey Responses</span>
+                </button>
+              </div>
+
               <div className="p-4 space-y-2">
                 {CHAPTERS.map((ch) => (
                   <button
@@ -237,6 +259,12 @@ export function ChapterShell({
           </>
         )}
       </AnimatePresence>
+
+      {/* ── Journey Responses Modal (Accessible everywhere) ── */}
+      <JourneyResponsesModal
+        isOpen={responsesOpen}
+        onClose={() => setResponsesOpen(false)}
+      />
     </div>
   );
 }
