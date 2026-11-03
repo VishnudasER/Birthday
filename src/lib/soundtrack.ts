@@ -7,12 +7,14 @@
 type Listener = (playing: boolean) => void;
 const listeners = new Set<Listener>();
 
+// Default is ON (unmuted) as requested
 let audioElement: HTMLAudioElement | null = null;
-let isPlaying = false;
+let isMusicEnabled = true;
+let isPlaying = true;
 let userGestureAttached = false;
 
 function notifyListeners() {
-  listeners.forEach((fn) => fn(isPlaying));
+  listeners.forEach((fn) => fn(isMusicEnabled && isPlaying));
 }
 
 export function getSoundtrackAudio(): HTMLAudioElement {
@@ -31,8 +33,11 @@ export function getSoundtrackAudio(): HTMLAudioElement {
     });
 
     audioElement.addEventListener('pause', () => {
-      isPlaying = false;
-      notifyListeners();
+      // Only set isPlaying false if audio was explicitly paused or ended
+      if (!isMusicEnabled) {
+        isPlaying = false;
+        notifyListeners();
+      }
     });
 
     audioElement.addEventListener('ended', () => {
@@ -48,20 +53,23 @@ export function playBackgroundMusic(): Promise<void> {
   const audio = getSoundtrackAudio();
   if (!audio) return Promise.resolve();
 
+  isMusicEnabled = true;
   return audio.play().then(() => {
     isPlaying = true;
     notifyListeners();
   }).catch((err) => {
     // Autoplay was blocked by browser policy until user gesture
-    console.warn('[Soundtrack] Autoplay blocked, waiting for user gesture:', err);
+    console.debug('[Soundtrack] Autoplay blocked, waiting for user gesture:', err);
   });
 }
 
 export function pauseBackgroundMusic() {
   const audio = getSoundtrackAudio();
-  if (!audio) return;
-  audio.pause();
+  isMusicEnabled = false;
   isPlaying = false;
+  if (audio) {
+    audio.pause();
+  }
   notifyListeners();
 }
 
@@ -69,29 +77,33 @@ export function toggleBackgroundMusic(): boolean {
   const audio = getSoundtrackAudio();
   if (!audio) return false;
 
-  // Always check REAL audio state (.paused) to avoid 2-click desync
-  if (audio.paused) {
-    audio.play().then(() => {
-      isPlaying = true;
-      notifyListeners();
-    }).catch(console.warn);
-    return true;
-  } else {
+  // If music is currently enabled and playing, user wants to MUTE it (turn OFF)
+  if (isMusicEnabled && !audio.paused) {
+    isMusicEnabled = false;
     audio.pause();
     isPlaying = false;
     notifyListeners();
     return false;
+  } else {
+    // If music was muted or paused by browser autoplay restriction, user wants to PLAY it (turn ON)
+    isMusicEnabled = true;
+    audio.play().then(() => {
+      isPlaying = true;
+      notifyListeners();
+    }).catch(console.warn);
+    isPlaying = true;
+    notifyListeners();
+    return true;
   }
 }
 
 export function isBackgroundMusicPlaying(): boolean {
-  if (!audioElement) return false;
-  return !audioElement.paused;
+  return isMusicEnabled;
 }
 
 export function subscribeToSoundtrack(fn: Listener): () => void {
   listeners.add(fn);
-  fn(isPlaying);
+  fn(isMusicEnabled);
   return () => {
     listeners.delete(fn);
   };
@@ -108,7 +120,7 @@ export function initAutoSoundtrack() {
   // On first user touch or click anywhere, start playing
   const onUserGesture = () => {
     const audio = getSoundtrackAudio();
-    if (audio) {
+    if (audio && isMusicEnabled) {
       if (!audio.paused) {
         removeGestureListeners();
         return;
@@ -122,6 +134,7 @@ export function initAutoSoundtrack() {
         console.debug('[Soundtrack] Play deferred until explicit tap:', err);
       });
     }
+
   };
 
   function removeGestureListeners() {

@@ -21,11 +21,18 @@ export function AccessGate({ onAuthorized }: AccessGateProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || loading) return;
+    const cleanCode = code.trim();
+    if (!cleanCode || loading) return;
+
+    // Trigger audio synchronously on user submit gesture so mobile Safari allows playback
+    if (cleanCode.toLowerCase() === 'shuttumani051199') {
+      playBackgroundMusic().catch(() => {});
+    }
+
     setLoading(true);
     setError(null);
 
-    const result = await verifyAccessCode(code.trim());
+    const result = await verifyAccessCode(cleanCode);
     setLoading(false);
 
     if (result.authorized) {
