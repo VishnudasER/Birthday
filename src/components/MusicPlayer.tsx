@@ -24,7 +24,8 @@ export function MusicPlayer() {
     return unsubscribe;
   }, []);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleToggle = (e: React.SyntheticEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     toggleBackgroundMusic();
   };
@@ -32,15 +33,15 @@ export function MusicPlayer() {
   return (
     <motion.button
       type="button"
-      onClick={handleClick}
+      onClick={handleToggle}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
       aria-label={isPlaying ? 'Mute sound' : 'Unmute sound'}
       title={isPlaying ? 'Sound ON (click to mute)' : 'Sound OFF (click to play)'}
-      className="fixed bottom-5 right-5 z-50 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl border border-rose-200/80 backdrop-blur-md cursor-pointer select-none"
+      className="fixed bottom-5 right-5 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl border border-rose-200/80 backdrop-blur-md cursor-pointer select-none touch-manipulation"
       style={{
+        WebkitTapHighlightColor: 'transparent',
         background: isPlaying
           ? 'linear-gradient(135deg, rgba(232, 102, 122, 0.95), rgba(201, 77, 99, 0.95))'
           : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(243, 244, 246, 0.9))',
@@ -51,8 +52,8 @@ export function MusicPlayer() {
       }}
     >
       {isPlaying ? (
-        <div className="relative flex items-center justify-center">
-          <Volume2 size={20} className="animate-pulse" />
+        <div className="relative flex items-center justify-center pointer-events-none">
+          <Volume2 size={22} className="animate-pulse" />
           {/* Subtle animated sound wave ping */}
           <motion.span
             className="absolute -inset-1.5 rounded-full border border-rose-300 pointer-events-none"
@@ -61,7 +62,7 @@ export function MusicPlayer() {
           />
         </div>
       ) : (
-        <VolumeX size={20} />
+        <VolumeX size={22} className="pointer-events-none" />
       )}
     </motion.button>
   );

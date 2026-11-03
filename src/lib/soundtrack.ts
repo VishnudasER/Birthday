@@ -23,17 +23,18 @@ export function getSoundtrackAudio(): HTMLAudioElement {
   }
 
   if (!audioElement) {
-    audioElement = new Audio('/audio/arz-kiya-hai.m4a');
+    const existing = document.getElementById('soundtrack-audio') as HTMLAudioElement | null;
+    audioElement = existing || new Audio('/audio/arz-kiya-hai.m4a');
     audioElement.loop = true;
     audioElement.preload = 'auto';
 
     audioElement.addEventListener('play', () => {
       isPlaying = true;
+      isMusicEnabled = true;
       notifyListeners();
     });
 
     audioElement.addEventListener('pause', () => {
-      // Only set isPlaying false if audio was explicitly paused or ended
       if (!isMusicEnabled) {
         isPlaying = false;
         notifyListeners();
@@ -54,12 +55,10 @@ export function playBackgroundMusic(): Promise<void> {
   if (!audio) return Promise.resolve();
 
   isMusicEnabled = true;
-  return audio.play().then(() => {
-    isPlaying = true;
-    notifyListeners();
-  }).catch((err) => {
-    // Autoplay was blocked by browser policy until user gesture
-    console.debug('[Soundtrack] Autoplay blocked, waiting for user gesture:', err);
+  isPlaying = true;
+  notifyListeners();
+  return audio.play().catch((err) => {
+    console.debug('[Soundtrack] Play deferred until user touch:', err);
   });
 }
 
@@ -77,23 +76,21 @@ export function toggleBackgroundMusic(): boolean {
   const audio = getSoundtrackAudio();
   if (!audio) return false;
 
-  // If music is currently enabled and playing, user wants to MUTE it (turn OFF)
-  if (isMusicEnabled && !audio.paused) {
-    isMusicEnabled = false;
-    audio.pause();
-    isPlaying = false;
-    notifyListeners();
-    return false;
-  } else {
-    // If music was muted or paused by browser autoplay restriction, user wants to PLAY it (turn ON)
+  // Single-tap foolproof logic:
+  // If currently paused / silent -> 1st tap ALWAYS plays!
+  if (audio.paused) {
     isMusicEnabled = true;
-    audio.play().then(() => {
-      isPlaying = true;
-      notifyListeners();
-    }).catch(console.warn);
     isPlaying = true;
     notifyListeners();
+    audio.play().catch(console.warn);
     return true;
+  } else {
+    // If currently playing sound -> 1st tap ALWAYS mutes!
+    isMusicEnabled = false;
+    isPlaying = false;
+    audio.pause();
+    notifyListeners();
+    return false;
   }
 }
 
@@ -114,39 +111,36 @@ export function initAutoSoundtrack() {
   if (typeof window === 'undefined' || userGestureAttached) return;
   userGestureAttached = true;
 
-  // Try playing immediately (works if browser allows, e.g. after previous interactions or relaxed autoplay)
-  playBackgroundMusic().catch(() => {});
+  const audio = getSoundtrackAudio();
+  if (!audio) return;
 
-  // On first user touch or click anywhere, start playing
-  const onUserGesture = () => {
-    const audio = getSoundtrackAudio();
-    if (audio && isMusicEnabled) {
-      if (!audio.paused) {
-        removeGestureListeners();
-        return;
-      }
+  // Try playing immediately (works if browser allows, e.g. desktop)
+  audio.play().catch(() => {});
+
+  // On first user touch or click anywhere (touchend/click are the valid gesture events on iOS Safari)
+  const unlock = () => {
+    if (audio.paused && isMusicEnabled) {
       audio.play().then(() => {
         isPlaying = true;
         notifyListeners();
-        removeGestureListeners();
+        cleanup();
       }).catch((err) => {
-        // Will retry on next interaction (e.g. touchend or form submit)
-        console.debug('[Soundtrack] Play deferred until explicit tap:', err);
+        console.debug('[Soundtrack] Unlock deferred:', err);
       });
+    } else {
+      cleanup();
     }
-
   };
 
-  function removeGestureListeners() {
-    window.removeEventListener('click', onUserGesture, true);
-    window.removeEventListener('touchstart', onUserGesture, true);
-    window.removeEventListener('touchend', onUserGesture, true);
-    window.removeEventListener('pointerdown', onUserGesture, true);
-  }
+  const cleanup = () => {
+    window.removeEventListener('click', unlock, true);
+    window.removeEventListener('touchend', unlock, true);
+    window.removeEventListener('keydown', unlock, true);
+  };
 
-  window.addEventListener('click', onUserGesture, true);
-  window.addEventListener('touchstart', onUserGesture, true);
-  window.addEventListener('touchend', onUserGesture, true);
-  window.addEventListener('pointerdown', onUserGesture, true);
+  window.addEventListener('click', unlock, true);
+  window.addEventListener('touchend', unlock, true);
+  window.addEventListener('keydown', unlock, true);
 }
+
 
