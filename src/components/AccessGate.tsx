@@ -7,6 +7,7 @@ import { Lock, Sparkles, Heart } from 'lucide-react';
 import { verifyAccessCode } from '@/lib/api';
 import { config } from '@/data/config';
 import { ButterflyField, SparkleField } from './Butterfly';
+import { playBackgroundMusic } from '@/lib/soundtrack';
 
 interface AccessGateProps {
   onAuthorized: () => void;
@@ -28,6 +29,7 @@ export function AccessGate({ onAuthorized }: AccessGateProps) {
     setLoading(false);
 
     if (result.authorized) {
+      playBackgroundMusic().catch(() => {});
       onAuthorized();
     } else {
       setError(result.error ?? 'Hmm, that code doesn\'t seem right. Try again! 🥺');

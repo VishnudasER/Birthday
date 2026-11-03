@@ -8,6 +8,7 @@ import { config } from '@/data/config';
 import { pickRandom } from '@/lib/utils';
 import { ButterflyField } from '@/components/Butterfly';
 import { ChapterMemoryGrid } from '@/components/MemoryCard';
+import { playBackgroundMusic } from '@/lib/soundtrack';
 
 interface Props { onNext: () => void }
 
@@ -16,6 +17,7 @@ export function ChapterInvitation({ onNext }: Props) {
   const [teasingMsg, setTeasingMsg] = useState('');
 
   const handleOpen = () => {
+    playBackgroundMusic().catch(() => {});
     setPhase('opening');
     setTimeout(() => { setPhase('opened'); }, 1200);
   };
