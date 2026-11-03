@@ -3,7 +3,7 @@
 // ============================================================
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, SkipForward, Menu, X, RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CHAPTERS } from '@/hooks/useJourney';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +36,27 @@ export function ChapterShell({
   const chapter = CHAPTERS.find((c) => c.id === currentChapter)!;
   const isFirst = currentChapter === 1;
   const isLast = currentChapter === CHAPTERS.length;
+
+  // Autoscroll to the very top on every chapter transition
+  useEffect(() => {
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    scrollToTop();
+
+    const rafId = requestAnimationFrame(scrollToTop);
+    const t1 = setTimeout(scrollToTop, 50);
+    const t2 = setTimeout(scrollToTop, 150);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [currentChapter]);
 
   return (
     <div className="chapter-shell relative">

@@ -55,10 +55,12 @@ export default function App() {
   const handleNext = () => {
     completeChapter(currentChapter);
     goNext();
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const handleSkip = () => {
     goToChapter(15);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const renderChapter = () => {
