@@ -11,7 +11,6 @@ const listeners = new Set<Listener>();
 let audioElement: HTMLAudioElement | null = null;
 let isMusicEnabled = true;
 let isPlaying = true;
-let hasStartedAudiblePlayback = false;
 let userGestureAttached = false;
 
 function notifyListeners() {
@@ -30,7 +29,6 @@ export function getSoundtrackAudio(): HTMLAudioElement {
     audioElement.preload = 'auto';
 
     audioElement.addEventListener('play', () => {
-      hasStartedAudiblePlayback = true;
       isPlaying = true;
       isMusicEnabled = true;
       notifyListeners();
@@ -38,14 +36,12 @@ export function getSoundtrackAudio(): HTMLAudioElement {
 
     audioElement.addEventListener('pause', () => {
       if (!isMusicEnabled) {
-        hasStartedAudiblePlayback = false;
         isPlaying = false;
         notifyListeners();
       }
     });
 
     audioElement.addEventListener('ended', () => {
-      hasStartedAudiblePlayback = false;
       isPlaying = false;
       notifyListeners();
     });
@@ -62,13 +58,8 @@ export function playBackgroundMusic(): Promise<void> {
   isPlaying = true;
   notifyListeners();
 
-  return audio.play().then(() => {
-    hasStartedAudiblePlayback = true;
-  }).catch((err) => {
-    // Autoplay blocked by Safari policy. Cleanly reset element so it's ready for tap.
-    audio.pause();
-    hasStartedAudiblePlayback = false;
-    console.debug('[Soundtrack] Autoplay blocked, primed for first tap:', err);
+  return audio.play().catch((err) => {
+    console.debug('[Soundtrack] Play deferred until user touch:', err);
   });
 }
 
@@ -76,7 +67,6 @@ export function pauseBackgroundMusic() {
   const audio = getSoundtrackAudio();
   isMusicEnabled = false;
   isPlaying = false;
-  hasStartedAudiblePlayback = false;
   if (audio) {
     audio.pause();
   }
@@ -87,36 +77,33 @@ export function toggleBackgroundMusic(): boolean {
   const audio = getSoundtrackAudio();
   if (!audio) return false;
 
-  // Check if music is ACTUALLY producing sound right now:
-  const isActuallyAudible = !audio.paused && audio.currentTime > 0 && hasStartedAudiblePlayback;
+  // Real audio state: is audio currently playing sound out loud?
+  const isAudible = !audio.paused && audio.currentTime > 0;
 
-  if (isActuallyAudible) {
-    // If music is already playing audibly -> MUTE IT (turn OFF)
-    isMusicEnabled = false;
-    isPlaying = false;
-    hasStartedAudiblePlayback = false;
+  if (isAudible) {
+    // If it's already playing sound -> click mutes it
     audio.pause();
+    isPlaying = false;
+    isMusicEnabled = false;
     notifyListeners();
     return false;
   } else {
-    // If music is silent, blocked, or paused -> PLAY IT IMMEDIATELY (turn ON)
+    // If it's silent / paused -> click 1 ALWAYS plays sound immediately
     isMusicEnabled = true;
     isPlaying = true;
     notifyListeners();
-    audio.play().then(() => {
-      hasStartedAudiblePlayback = true;
-    }).catch(console.warn);
+    audio.play().catch(console.warn);
     return true;
   }
 }
 
 export function isBackgroundMusicPlaying(): boolean {
-  return isMusicEnabled;
+  return isPlaying;
 }
 
 export function subscribeToSoundtrack(fn: Listener): () => void {
   listeners.add(fn);
-  fn(isMusicEnabled);
+  fn(isPlaying);
   return () => {
     listeners.delete(fn);
   };
@@ -130,20 +117,13 @@ export function initAutoSoundtrack() {
   const audio = getSoundtrackAudio();
   if (!audio) return;
 
-  // Try playing immediately (works if browser allows, e.g. desktop Chrome)
-  audio.play().then(() => {
-    hasStartedAudiblePlayback = true;
-  }).catch(() => {
-    // Autoplay blocked: cleanly pause so audio.paused is strictly true
-    audio.pause();
-    hasStartedAudiblePlayback = false;
-  });
+  // Prime the audio buffer without triggering autoplay rejection
+  audio.load();
 
-  // On first user touch or click anywhere (touchend/click are the valid gesture events on iOS Safari)
+  // On first user touch anywhere on the screen (iOS Safari compatible)
   const unlock = () => {
-    if (!hasStartedAudiblePlayback && isMusicEnabled) {
+    if (audio.paused && isMusicEnabled) {
       audio.play().then(() => {
-        hasStartedAudiblePlayback = true;
         isPlaying = true;
         notifyListeners();
         cleanup();
