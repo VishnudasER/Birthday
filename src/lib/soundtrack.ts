@@ -97,26 +97,43 @@ export function subscribeToSoundtrack(fn: Listener): () => void {
   };
 }
 
-// Automatically attach one-time user interaction listeners
+// Automatically attach robust user interaction listeners for mobile/desktop
 export function initAutoSoundtrack() {
   if (typeof window === 'undefined' || userGestureAttached) return;
   userGestureAttached = true;
 
-  // Try playing immediately
+  // Try playing immediately (works if browser allows, e.g. after previous interactions or relaxed autoplay)
   playBackgroundMusic().catch(() => {});
 
   // On first user touch or click anywhere, start playing
   const onUserGesture = () => {
     const audio = getSoundtrackAudio();
-    if (audio && audio.paused) {
-      audio.play().catch(() => {});
+    if (audio) {
+      if (!audio.paused) {
+        removeGestureListeners();
+        return;
+      }
+      audio.play().then(() => {
+        isPlaying = true;
+        notifyListeners();
+        removeGestureListeners();
+      }).catch((err) => {
+        // Will retry on next interaction (e.g. touchend or form submit)
+        console.debug('[Soundtrack] Play deferred until explicit tap:', err);
+      });
     }
+  };
+
+  function removeGestureListeners() {
     window.removeEventListener('click', onUserGesture, true);
     window.removeEventListener('touchstart', onUserGesture, true);
+    window.removeEventListener('touchend', onUserGesture, true);
     window.removeEventListener('pointerdown', onUserGesture, true);
-  };
+  }
 
   window.addEventListener('click', onUserGesture, true);
   window.addEventListener('touchstart', onUserGesture, true);
+  window.addEventListener('touchend', onUserGesture, true);
   window.addEventListener('pointerdown', onUserGesture, true);
 }
+
