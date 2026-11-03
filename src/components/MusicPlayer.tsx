@@ -4,7 +4,6 @@
 // Only sound icon, default ON, 1-click instant toggle (no double-click bug)
 // ============================================================
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Volume2, VolumeX } from 'lucide-react';
 import {
   initAutoSoundtrack,
@@ -24,24 +23,21 @@ export function MusicPlayer() {
     return unsubscribe;
   }, []);
 
-  const handleToggle = (e: React.SyntheticEvent) => {
-    e.preventDefault();
+  const handleToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     toggleBackgroundMusic();
   };
 
   return (
-    <motion.button
+    <button
       type="button"
       onClick={handleToggle}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileTap={{ scale: 0.9 }}
       aria-label={isPlaying ? 'Mute sound' : 'Unmute sound'}
-      title={isPlaying ? 'Sound ON (click to mute)' : 'Sound OFF (click to play)'}
-      className="fixed bottom-5 right-5 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl border border-rose-200/80 backdrop-blur-md cursor-pointer select-none touch-manipulation"
+      title={isPlaying ? 'Sound ON (tap to mute)' : 'Sound OFF (tap to play)'}
+      className="fixed bottom-5 right-5 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl border border-rose-200/80 backdrop-blur-md cursor-pointer select-none active:scale-90"
       style={{
         WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
         background: isPlaying
           ? 'linear-gradient(135deg, rgba(232, 102, 122, 0.95), rgba(201, 77, 99, 0.95))'
           : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(243, 244, 246, 0.9))',
@@ -55,15 +51,14 @@ export function MusicPlayer() {
         <div className="relative flex items-center justify-center pointer-events-none">
           <Volume2 size={22} className="animate-pulse" />
           {/* Subtle animated sound wave ping */}
-          <motion.span
-            className="absolute -inset-1.5 rounded-full border border-rose-300 pointer-events-none"
-            animate={{ scale: [1, 1.4, 1.6], opacity: [0.8, 0.3, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+          <span
+            className="absolute -inset-1.5 rounded-full border border-rose-300 pointer-events-none animate-ping"
+            style={{ animationDuration: '2.5s' }}
           />
         </div>
       ) : (
         <VolumeX size={22} className="pointer-events-none" />
       )}
-    </motion.button>
+    </button>
   );
 }

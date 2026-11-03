@@ -11,6 +11,7 @@ const listeners = new Set<Listener>();
 let audioElement: HTMLAudioElement | null = null;
 let isMusicEnabled = true;
 let isPlaying = true;
+let hasStartedAudiblePlayback = false;
 let userGestureAttached = false;
 
 function notifyListeners() {
@@ -29,6 +30,7 @@ export function getSoundtrackAudio(): HTMLAudioElement {
     audioElement.preload = 'auto';
 
     audioElement.addEventListener('play', () => {
+      hasStartedAudiblePlayback = true;
       isPlaying = true;
       isMusicEnabled = true;
       notifyListeners();
@@ -36,12 +38,14 @@ export function getSoundtrackAudio(): HTMLAudioElement {
 
     audioElement.addEventListener('pause', () => {
       if (!isMusicEnabled) {
+        hasStartedAudiblePlayback = false;
         isPlaying = false;
         notifyListeners();
       }
     });
 
     audioElement.addEventListener('ended', () => {
+      hasStartedAudiblePlayback = false;
       isPlaying = false;
       notifyListeners();
     });
@@ -57,8 +61,14 @@ export function playBackgroundMusic(): Promise<void> {
   isMusicEnabled = true;
   isPlaying = true;
   notifyListeners();
-  return audio.play().catch((err) => {
-    console.debug('[Soundtrack] Play deferred until user touch:', err);
+
+  return audio.play().then(() => {
+    hasStartedAudiblePlayback = true;
+  }).catch((err) => {
+    // Autoplay blocked by Safari policy. Cleanly reset element so it's ready for tap.
+    audio.pause();
+    hasStartedAudiblePlayback = false;
+    console.debug('[Soundtrack] Autoplay blocked, primed for first tap:', err);
   });
 }
 
@@ -66,6 +76,7 @@ export function pauseBackgroundMusic() {
   const audio = getSoundtrackAudio();
   isMusicEnabled = false;
   isPlaying = false;
+  hasStartedAudiblePlayback = false;
   if (audio) {
     audio.pause();
   }
@@ -76,21 +87,26 @@ export function toggleBackgroundMusic(): boolean {
   const audio = getSoundtrackAudio();
   if (!audio) return false;
 
-  // Single-tap foolproof logic:
-  // If currently paused / silent -> 1st tap ALWAYS plays!
-  if (audio.paused) {
-    isMusicEnabled = true;
-    isPlaying = true;
-    notifyListeners();
-    audio.play().catch(console.warn);
-    return true;
-  } else {
-    // If currently playing sound -> 1st tap ALWAYS mutes!
+  // Check if music is ACTUALLY producing sound right now:
+  const isActuallyAudible = !audio.paused && audio.currentTime > 0 && hasStartedAudiblePlayback;
+
+  if (isActuallyAudible) {
+    // If music is already playing audibly -> MUTE IT (turn OFF)
     isMusicEnabled = false;
     isPlaying = false;
+    hasStartedAudiblePlayback = false;
     audio.pause();
     notifyListeners();
     return false;
+  } else {
+    // If music is silent, blocked, or paused -> PLAY IT IMMEDIATELY (turn ON)
+    isMusicEnabled = true;
+    isPlaying = true;
+    notifyListeners();
+    audio.play().then(() => {
+      hasStartedAudiblePlayback = true;
+    }).catch(console.warn);
+    return true;
   }
 }
 
@@ -114,19 +130,24 @@ export function initAutoSoundtrack() {
   const audio = getSoundtrackAudio();
   if (!audio) return;
 
-  // Try playing immediately (works if browser allows, e.g. desktop)
-  audio.play().catch(() => {});
+  // Try playing immediately (works if browser allows, e.g. desktop Chrome)
+  audio.play().then(() => {
+    hasStartedAudiblePlayback = true;
+  }).catch(() => {
+    // Autoplay blocked: cleanly pause so audio.paused is strictly true
+    audio.pause();
+    hasStartedAudiblePlayback = false;
+  });
 
   // On first user touch or click anywhere (touchend/click are the valid gesture events on iOS Safari)
   const unlock = () => {
-    if (audio.paused && isMusicEnabled) {
+    if (!hasStartedAudiblePlayback && isMusicEnabled) {
       audio.play().then(() => {
+        hasStartedAudiblePlayback = true;
         isPlaying = true;
         notifyListeners();
         cleanup();
-      }).catch((err) => {
-        console.debug('[Soundtrack] Unlock deferred:', err);
-      });
+      }).catch(() => {});
     } else {
       cleanup();
     }
