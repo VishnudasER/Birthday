@@ -1,7 +1,7 @@
 // ============================================================
 // App.tsx — main orchestrator
 // ============================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
 import { AccessGate } from '@/components/AccessGate';
@@ -10,6 +10,7 @@ import { ButterflyField, SparkleField } from '@/components/Butterfly';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { useJourney } from '@/hooks/useJourney';
 import { hasSession } from '@/lib/api';
+import { CHAPTER_MEMORIES } from '@/data/chapterMemories';
 
 // Chapters (15 sections, game completely removed)
 import { ChapterInvitation }         from '@/chapters/ChapterInvitation';
@@ -30,6 +31,22 @@ import { ChapterFinalSurprise }      from '@/chapters/ChapterFinalSurprise';
 
 export default function App() {
   const [authorized, setAuthorized] = useState(() => hasSession());
+
+  useEffect(() => {
+    if (!authorized) return;
+    // Silently pre-cache all memory WebP images in background during idle time
+    const preload = () => {
+      CHAPTER_MEMORIES.forEach((m) => {
+        const img = new Image();
+        img.src = m.imageSrc.replace(/\.jpg$/, '.webp');
+      });
+    };
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(preload);
+    } else {
+      setTimeout(preload, 1000);
+    }
+  }, [authorized]);
 
   const {
     currentChapter,

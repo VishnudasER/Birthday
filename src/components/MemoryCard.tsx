@@ -77,18 +77,26 @@ export function MemoryCard({ memory, className = '' }: MemoryCardProps) {
               </div>
             )}
 
-            {/* The Actual Memory Photo */}
-            <img
-              src={memory.imageSrc}
-              alt={memory.title}
-              loading="lazy"
-              onLoad={() => setIsLoaded(true)}
-              className={`w-full h-full object-cover transition-all duration-700 ease-out ${
-                isLoaded
-                  ? 'opacity-100 blur-0 scale-100'
-                  : 'opacity-0 blur-xl scale-105'
-              }`}
-            />
+            {/* The Actual Memory Photo with WebP + JPG fallback */}
+            <picture className="w-full h-full">
+              <source
+                srcSet={memory.imageSrc.replace(/\.jpg$/, '.webp')}
+                type="image/webp"
+              />
+              <img
+                src={memory.imageSrc}
+                alt={memory.title}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                onLoad={() => setIsLoaded(true)}
+                className={`w-full h-full object-cover transition-all duration-500 ease-out ${
+                  isLoaded
+                    ? 'opacity-100 blur-0 scale-100'
+                    : 'opacity-0 blur-xl scale-105'
+                }`}
+              />
+            </picture>
 
             {/* Floating Top Tag Pill */}
             <div className="absolute top-3 left-3 z-10">
@@ -186,11 +194,18 @@ export function MemoryCard({ memory, className = '' }: MemoryCardProps) {
               className="max-w-2xl w-full max-h-[92vh] overflow-y-auto bg-stone-900 text-stone-100 rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/10"
             >
               <div className="relative rounded-2xl overflow-hidden bg-black/40 max-h-[65vh] flex items-center justify-center">
-                <img
-                  src={memory.imageSrc}
-                  alt={memory.title}
-                  className="w-full max-h-[65vh] object-contain rounded-xl"
-                />
+                <picture className="w-full max-h-[65vh] flex items-center justify-center">
+                  <source
+                    srcSet={memory.imageSrc.replace(/\.jpg$/, '.webp')}
+                    type="image/webp"
+                  />
+                  <img
+                    src={memory.imageSrc}
+                    alt={memory.title}
+                    decoding="async"
+                    className="w-full max-h-[65vh] object-contain rounded-xl"
+                  />
+                </picture>
               </div>
 
               <div className="mt-4">

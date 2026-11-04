@@ -1,7 +1,7 @@
 // ============================================================
 // Chapter 7: Who Is More Likely To?
 // ============================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { config } from '@/data/config';
 import type { MoreLikelyOption, MoreLikelyAnswer } from '@/types';
@@ -31,6 +31,14 @@ export function ChapterMoreLikely({ onNext }: Props) {
   const [selected, setSelected] = useState<MoreLikelyOption | null>(null);
   const [showTeasing, setShowTeasing] = useState(false);
   const [phase, setPhase] = useState<'quiz' | 'summary'>('quiz');
+
+  useEffect(() => {
+    // Eagerly preload memories #09 & #10 while the user answers the quiz so they render with 0ms delay on the summary
+    const p1 = new Image();
+    p1.src = '/memories/memory-09.webp';
+    const p2 = new Image();
+    p2.src = '/memories/memory-10.webp';
+  }, []);
 
   const prompts = config.morelikelyPrompts;
   const prompt = prompts[currentIdx];
