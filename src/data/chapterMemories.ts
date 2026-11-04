@@ -42,7 +42,7 @@ export const CHAPTER_MEMORIES: MemoryItem[] = [
     tag: '💝 Little Efforts',
     tagColor: 'from-pink-500 to-rose-500',
     title: 'Every Little Effort Makes My Gift Special',
-    description: "She put so much thought and effort into preparing a special gift for my sister. That's my Shootamani, making even the smallest moments feel incredibly thoughtful.",
+    description: "She put so much thought and effort into preparing a special gift for my sister. That's my Shuttumani, making even the smallest moments feel incredibly thoughtful.",
     sundramaniNote: 'Sundramani says: "Seeing you put so much effort into my sister\'s gift made me love you even more."',
     dateTag: 'Memory #02 • Little Efforts',
     stickerEmoji: '✨',
