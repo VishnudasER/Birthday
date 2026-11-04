@@ -119,6 +119,14 @@ export function JourneyResponsesModal({ isOpen, onClose }: Props) {
                   <Download size={13} />
                   <span>Save .txt</span>
                 </button>
+
+                <a
+                  href="/answers"
+                  className="px-3 py-1.5 rounded-full font-hand font-semibold flex items-center gap-1.5 transition-all bg-stone-900 hover:bg-black text-white shadow-xs cursor-pointer"
+                >
+                  <FileText size={13} />
+                  <span>Open /answers</span>
+                </a>
               </div>
             </div>
 

@@ -246,7 +246,7 @@ export function ChapterShell({
                 ))}
               </div>
 
-              <div className="p-4 border-t border-blush">
+              <div className="p-4 border-t border-blush flex items-center justify-between">
                 <button
                   onClick={() => { onReset(); setMenuOpen(false); }}
                   className="flex items-center gap-2 text-sm text-rose-400 hover:text-rose-600 transition-colors"
@@ -254,6 +254,13 @@ export function ChapterShell({
                   <RotateCcw size={14} />
                   Start from beginning
                 </button>
+                <a
+                  href="/answers"
+                  className="flex items-center gap-1.5 text-xs font-hand font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-full border border-rose-200 transition-colors"
+                >
+                  <FileText size={12} />
+                  <span>/answers Report</span>
+                </a>
               </div>
             </motion.div>
           </>

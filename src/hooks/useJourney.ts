@@ -4,6 +4,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { JourneyProgress, ChapterSlug } from '@/types';
 import { safeLocalGet, safeLocalSet } from '@/lib/utils';
+import { recordChapterVisit, recordChapterComplete, startNewJourney } from '@/lib/responsesStore';
 
 export const CHAPTERS: Array<{
   id: number;
@@ -50,6 +51,8 @@ export function useJourney() {
   }, [progress]);
 
   const goToChapter = useCallback((id: number) => {
+    const ch = CHAPTERS.find((c) => c.id === id);
+    if (ch) recordChapterVisit(ch.id, ch.title);
     setProgress((prev) => ({
       ...prev,
       currentChapter: id,
@@ -61,6 +64,8 @@ export function useJourney() {
   }, []);
 
   const completeChapter = useCallback((id: number) => {
+    const ch = CHAPTERS.find((c) => c.id === id);
+    if (ch) recordChapterComplete(ch.id, ch.title);
     setProgress((prev) => ({
       ...prev,
       completedChapters: prev.completedChapters.includes(id)
@@ -72,7 +77,11 @@ export function useJourney() {
 
   const goNext = useCallback(() => {
     setProgress((prev) => {
+      const prevCh = CHAPTERS.find((c) => c.id === prev.currentChapter);
+      if (prevCh) recordChapterComplete(prevCh.id, prevCh.title);
       const next = Math.min(prev.currentChapter + 1, CHAPTERS.length);
+      const nextCh = CHAPTERS.find((c) => c.id === next);
+      if (nextCh) recordChapterVisit(nextCh.id, nextCh.title);
       return {
         ...prev,
         currentChapter: next,
@@ -96,6 +105,7 @@ export function useJourney() {
   }, []);
 
   const resetJourney = useCallback(() => {
+    startNewJourney();
     setProgress(defaultProgress());
   }, []);
 

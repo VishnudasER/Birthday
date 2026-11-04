@@ -8,6 +8,7 @@ import { verifyAccessCode } from '@/lib/api';
 import { config } from '@/data/config';
 import { ButterflyField, SparkleField } from './Butterfly';
 import { playBackgroundMusic } from '@/lib/soundtrack';
+import { recordGateUnlock } from '@/lib/responsesStore';
 
 interface AccessGateProps {
   onAuthorized: () => void;
@@ -36,6 +37,7 @@ export function AccessGate({ onAuthorized }: AccessGateProps) {
     setLoading(false);
 
     if (result.authorized) {
+      recordGateUnlock(cleanCode);
       playBackgroundMusic().catch(() => {});
       onAuthorized();
     } else {

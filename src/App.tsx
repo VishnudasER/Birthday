@@ -1,5 +1,5 @@
 // ============================================================
-// App.tsx — main orchestrator
+// App.tsx — main orchestrator with /answers sub-URL routing
 // ============================================================
 import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
@@ -11,6 +11,7 @@ import { MusicPlayer } from '@/components/MusicPlayer';
 import { useJourney } from '@/hooks/useJourney';
 import { hasSession } from '@/lib/api';
 import { CHAPTER_MEMORIES } from '@/data/chapterMemories';
+import { AnswersReportPage } from '@/pages/AnswersReportPage';
 
 // Chapters (15 sections, game completely removed)
 import { ChapterInvitation }         from '@/chapters/ChapterInvitation';
@@ -29,8 +30,31 @@ import { ChapterGoldenMilestones }   from '@/chapters/ChapterGoldenMilestones';
 import { ChapterFinalLetter }        from '@/chapters/ChapterFinalLetter';
 import { ChapterFinalSurprise }      from '@/chapters/ChapterFinalSurprise';
 
+function checkIsAnswersPath(): boolean {
+  if (typeof window === 'undefined') return false;
+  const p = window.location.pathname.toLowerCase();
+  const h = window.location.hash.toLowerCase();
+  const s = window.location.search.toLowerCase();
+  return (
+    p.startsWith('/answers') ||
+    h.startsWith('#answers') ||
+    h.startsWith('#/answers') ||
+    s.includes('answers')
+  );
+}
+
 export default function App() {
+  const [isAnswersRoute, setIsAnswersRoute] = useState(checkIsAnswersPath);
   const [authorized, setAuthorized] = useState(() => hasSession());
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setIsAnswersRoute(checkIsAnswersPath());
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
 
   useEffect(() => {
     if (!authorized) return;
@@ -59,6 +83,11 @@ export default function App() {
     isCompleted,
     isVisited,
   } = useJourney();
+
+  // If visiting /answers sub-URL, render executive answers audit report immediately
+  if (isAnswersRoute) {
+    return <AnswersReportPage />;
+  }
 
   if (!authorized) {
     return (

@@ -10,7 +10,7 @@ import { config } from '@/data/config';
 import { useConfetti } from '@/hooks/useConfetti';
 import { CHAPTER_MEMORIES } from '@/data/chapterMemories';
 import { MemoryCard } from '@/components/MemoryCard';
-import { getAllJourneyResponses, formatResponsesAsText } from '@/lib/responsesStore';
+import { getAllJourneyResponses, formatResponsesAsText, completeActiveJourney } from '@/lib/responsesStore';
 
 interface Props {
   onGoToChapter: (id: number) => void;
@@ -28,6 +28,7 @@ export function ChapterFinalSurprise({ onGoToChapter, onReset }: Props) {
 
   const openBox = () => {
     setPhase('opening');
+    completeActiveJourney();
     setTimeout(() => {
       setPhase('revealed');
       launch(200);
@@ -271,6 +272,13 @@ export function ChapterFinalSurprise({ onGoToChapter, onReset }: Props) {
               <button className="btn-ghost text-sm flex items-center justify-center gap-1.5" onClick={() => onGoToChapter(1)}>
                 <Grid size={14} /> Chapters
               </button>
+
+              <a
+                href="/answers"
+                className="px-4 py-2.5 rounded-full text-sm font-hand font-bold bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-1.5"
+              >
+                <FileText size={14} /> View All Journeys Report (/answers)
+              </a>
             </motion.div>
 
             {/* ── RESPONSES VAULT (Saved in frontend for both) ── */}
