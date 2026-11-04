@@ -212,7 +212,7 @@ export const config = {
       id: 'q10',
       category: 'Personality',
       type: 'multiple-choice' as const,
-      question: "Which one of us would remember an embarrassing thing that happened 3 years ago and bring it up at the worst possible moment?",
+      question: "Which one of us would remember an embarrassing thing that happened in the past and bring it up at the worst possible moment?",
       options: ['Shuttumani', 'Sundramani', 'Both of us simultaneously', 'We have mutually agreed to forget'],
       correctIndex: null,
       isOpinion: true,
