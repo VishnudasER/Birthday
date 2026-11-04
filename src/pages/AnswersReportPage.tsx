@@ -15,13 +15,13 @@ import {
   Check,
   Download,
   Upload,
-  RefreshCw,
   Search,
   Sparkles,
   Smartphone,
   ShieldCheck,
   Layers,
   FileText,
+  Trash2,
 } from 'lucide-react';
 import { config } from '@/data/config';
 import {
@@ -31,7 +31,7 @@ import {
   formatAllJourneysConsolidatedReport,
   exportJourneysAsJson,
   importJourneysFromJson,
-  seedSampleJourneys,
+  clearAllJourneys,
   startNewJourney,
 } from '@/lib/responsesStore';
 
@@ -171,10 +171,11 @@ export function AnswersReportPage() {
     }
   };
 
-  const handleSeed10Journeys = () => {
-    if (confirm('Load 10 complete realistic journeys with all timestamps and answers?')) {
-      seedSampleJourneys(10);
-      refreshJourneys();
+  const handleClearAllJourneys = () => {
+    if (confirm('Clear all entries from this dashboard? Only Shuttumani\'s real responses will appear.')) {
+      clearAllJourneys();
+      setJourneys([]);
+      setSelectedJourneyId('all');
     }
   };
 
@@ -218,7 +219,8 @@ export function AnswersReportPage() {
 
             <button
               onClick={handleCopyReport}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-hand font-bold bg-white text-rose-700 hover:bg-rose-50 border border-rose-200 shadow-sm transition-all"
+              disabled={journeys.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-hand font-bold bg-white text-rose-700 hover:bg-rose-50 border border-rose-200 shadow-sm transition-all disabled:opacity-40"
             >
               {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
               <span>{copied ? 'Copied Full Report!' : 'Copy Report'}</span>
@@ -226,7 +228,8 @@ export function AnswersReportPage() {
 
             <button
               onClick={handleDownloadTxt}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-hand font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-sm transition-all"
+              disabled={journeys.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-hand font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-sm transition-all disabled:opacity-40"
             >
               <Download size={13} />
               <span className="hidden sm:inline">Download</span> .txt
@@ -234,7 +237,7 @@ export function AnswersReportPage() {
 
             <button
               onClick={() => setShowImportModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-hand font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700 transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-hand font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700 transition-all cursor-pointer"
               title="Sync or Import Data"
             >
               <Upload size={13} />
@@ -254,10 +257,10 @@ export function AnswersReportPage() {
                 <span>Executive Responses & Audit Log Vault</span>
               </div>
               <h1 className="font-serif text-3xl sm:text-4xl text-stone-900 tracking-tight font-bold">
-                All Journey Responses & Timings 📜
+                Birthday Girl Responses & Timings 📜
               </h1>
               <p className="text-sm sm:text-base text-stone-600 font-sans mt-1 max-w-2xl">
-                Every single quiz answer, &ldquo;Who Is More Likely To&rdquo; choice, &ldquo;This or That&rdquo; pick, and heartfelt Time Capsule letter—recorded with exact log timestamps down to the second.
+                Every single quiz answer, &ldquo;Who Is More Likely To&rdquo; choice, &ldquo;This or That&rdquo; pick, and heartfelt Time Capsule letter from Shuttumani—logged with exact timestamps down to the second.
               </p>
             </div>
 
@@ -268,91 +271,148 @@ export function AnswersReportPage() {
               >
                 + Start New Journey
               </button>
-              <button
-                onClick={handleSeed10Journeys}
-                className="px-3.5 py-2 rounded-xl text-xs font-hand font-bold bg-stone-800 hover:bg-black text-white shadow-sm transition-all flex items-center gap-1.5"
-              >
-                <RefreshCw size={12} />
-                <span>Reload 10 Journeys</span>
-              </button>
+              {journeys.length > 0 && (
+                <button
+                  onClick={handleClearAllJourneys}
+                  className="px-3.5 py-2 rounded-xl text-xs font-hand font-bold bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Clear all entries"
+                >
+                  <Trash2 size={13} />
+                  <span>Clear All Entries</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* ── Horizontal Journey Selector Tabs ── */}
-          <div className="mt-8 pt-4 border-t border-rose-100">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-mono font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Layers size={13} className="text-rose-500" />
-                <span>Recorded Journeys ({journeys.length})</span>
-              </span>
-              <span className="text-xs text-rose-600 font-hand font-medium">
-                Click any tab below to inspect that journey&apos;s full audit log
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-              {/* Consolidated view tab */}
-              <button
-                onClick={() => setSelectedJourneyId('all')}
-                className={`shrink-0 px-4 py-2.5 rounded-2xl text-xs font-hand font-bold flex items-center gap-2 border transition-all ${
-                  selectedJourneyId === 'all'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-md scale-105'
-                    : 'bg-white text-stone-700 border-stone-200 hover:border-rose-300 hover:bg-rose-50/50'
-                }`}
-              >
-                <Layers size={14} />
-                <span>📊 Master Consolidated Overview</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  selectedJourneyId === 'all' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
-                }`}>
-                  {journeys.length}
+          {/* ── Horizontal Journey Selector Tabs (Only if journeys exist) ── */}
+          {journeys.length > 0 && (
+            <div className="mt-8 pt-4 border-t border-rose-100">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-xs font-mono font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers size={13} className="text-rose-500" />
+                  <span>Recorded Journeys ({journeys.length})</span>
                 </span>
-              </button>
+                <span className="text-xs text-rose-600 font-hand font-medium">
+                  Click any tab below to inspect that journey&apos;s full audit log
+                </span>
+              </div>
 
-              {/* Individual journey tabs */}
-              {journeys.map((j) => {
-                const isSelected = selectedJourneyId === j.id;
-                return (
-                  <button
-                    key={j.id}
-                    onClick={() => setSelectedJourneyId(j.id)}
-                    className={`shrink-0 px-3.5 py-2 rounded-2xl text-left border transition-all ${
-                      isSelected
-                        ? 'bg-white border-rose-500 shadow-md ring-2 ring-rose-200'
-                        : 'bg-white/80 border-stone-200 hover:border-rose-300 hover:bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`font-hand font-bold text-sm ${isSelected ? 'text-rose-700' : 'text-stone-800'}`}>
-                        Journey #{j.journeyNumber}
-                      </span>
-                      <span
-                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-medium ${
-                          j.status === 'Completed'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}
-                      >
-                        {j.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5 text-[11px] font-mono text-stone-500">
-                      <span>{fmtTimeOnly(j.startedAt)}</span>
-                      <span>•</span>
-                      <span>{j.durationFormatted || 'Active'}</span>
-                    </div>
-                  </button>
-                );
-              })}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                {/* Consolidated view tab */}
+                <button
+                  onClick={() => setSelectedJourneyId('all')}
+                  className={`shrink-0 px-4 py-2.5 rounded-2xl text-xs font-hand font-bold flex items-center gap-2 border transition-all ${
+                    selectedJourneyId === 'all'
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-md scale-105'
+                      : 'bg-white text-stone-700 border-stone-200 hover:border-rose-300 hover:bg-rose-50/50'
+                  }`}
+                >
+                  <Layers size={14} />
+                  <span>📊 Master Consolidated Overview</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    selectedJourneyId === 'all' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
+                  }`}>
+                    {journeys.length}
+                  </span>
+                </button>
+
+                {/* Individual journey tabs */}
+                {journeys.map((j) => {
+                  const isSelected = selectedJourneyId === j.id;
+                  return (
+                    <button
+                      key={j.id}
+                      onClick={() => setSelectedJourneyId(j.id)}
+                      className={`shrink-0 px-3.5 py-2 rounded-2xl text-left border transition-all ${
+                        isSelected
+                          ? 'bg-white border-rose-500 shadow-md ring-2 ring-rose-200'
+                          : 'bg-white/80 border-stone-200 hover:border-rose-300 hover:bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`font-hand font-bold text-sm ${isSelected ? 'text-rose-700' : 'text-stone-800'}`}>
+                          Journey #{j.journeyNumber}
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-medium ${
+                            j.status === 'Completed'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}
+                        >
+                          {j.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px] font-mono text-stone-500">
+                        <span>{fmtTimeOnly(j.startedAt)}</span>
+                        <span>•</span>
+                        <span>{j.durationFormatted || 'Active'}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
       {/* ── Main Content Area ── */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        {/* ── Consolidated View (if selected) ── */}
-        {selectedJourneyId === 'all' ? (
+        {journeys.length === 0 ? (
+          /* ── Pristine Clean Empty State ── */
+          <div className="bg-white rounded-3xl p-8 sm:p-14 border border-rose-200 shadow-sm text-center max-w-2xl mx-auto space-y-6">
+            <div className="w-20 h-20 mx-auto rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 text-3xl shadow-inner">
+              💌
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-hand font-semibold text-rose-700 bg-rose-100/80 mb-2">
+                <Sparkles size={13} className="text-rose-500" />
+                <span>Pristine Audit Vault Ready</span>
+              </div>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+                Waiting for Birthday Girl Shuttumani 💕
+              </h2>
+              <p className="text-sm text-stone-600 font-sans mt-2 max-w-lg mx-auto leading-relaxed">
+                All mock entries have been cleared. As soon as Shuttumani logs in at the entrance with her username and password and begins her 15-chapter adventure, all her responses, quiz answers, and log times will appear right here in real-time.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 text-left space-y-2.5 text-xs font-mono max-w-md mx-auto">
+              <div className="text-stone-400 uppercase text-[10px] tracking-wider font-semibold">
+                Access Gate Credentials:
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-stone-500">Username:</span>
+                <span className="font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded border border-rose-200">
+                  shuttumani
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-stone-500">Secret Password:</span>
+                <span className="font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded border border-rose-200">
+                  shuttumani051199
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <a
+                href="/"
+                className="px-5 py-2.5 rounded-full text-xs font-hand font-bold bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md hover:shadow-lg transition-all"
+              >
+                Go to Birthday Entrance (https://srubirthday.vercel.app/)
+              </a>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="px-4 py-2.5 rounded-full text-xs font-hand font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700 transition-all flex items-center gap-1.5"
+              >
+                <Upload size={13} />
+                <span>Sync / Import Data</span>
+              </button>
+            </div>
+          </div>
+        ) : selectedJourneyId === 'all' ? (
           <div className="space-y-6">
             {/* Consolidated Header Card */}
             <div className="bg-white rounded-3xl p-6 border border-rose-200 shadow-sm">
@@ -577,10 +637,13 @@ export function AnswersReportPage() {
 
                 <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
                   <span className="text-[11px] font-mono text-stone-400 uppercase flex items-center gap-1">
-                    <ShieldCheck size={12} className="text-rose-400" /> Gate Unlock Code
+                    <ShieldCheck size={12} className="text-rose-400" /> Gate Credentials
                   </span>
                   <p className="font-mono text-xs sm:text-sm font-semibold text-stone-800 mt-1 truncate">
-                    {selectedJourney.accessUnlock?.code || 'shuttumani051199'}
+                    User: {selectedJourney.accessUnlock?.username || 'shuttumani'}
+                  </p>
+                  <p className="font-mono text-[10px] text-rose-600 truncate">
+                    Code: {selectedJourney.accessUnlock?.code || 'shuttumani051199'}
                   </p>
                 </div>
               </div>
@@ -1004,7 +1067,7 @@ export function AnswersReportPage() {
                         </span>
                       </div>
                       <p className="text-stone-500 mt-0.5 font-mono text-[11px]">
-                        Passcode verified: &ldquo;{selectedJourney.accessUnlock.code}&rdquo;
+                        User: &ldquo;{selectedJourney.accessUnlock.username || 'shuttumani'}&rdquo; • Passcode: &ldquo;{selectedJourney.accessUnlock.code}&rdquo;
                       </p>
                     </div>
                   )}

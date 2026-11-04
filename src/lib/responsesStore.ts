@@ -3,7 +3,7 @@
 // Records every question, prompt, choice, capsule essay, and timing
 // Supports multiple journeys (Journey #1 to #10+) with exact log times.
 // ============================================================
-import { safeLocalGet, safeLocalSet } from '@/lib/utils';
+import { safeLocalGet, safeLocalSet, safeLocalRemove } from '@/lib/utils';
 import { config } from '@/data/config';
 
 // ── Types for Question-by-Question Logged Items ─────────────
@@ -65,6 +65,7 @@ export interface JourneyRecord {
   durationFormatted?: string;
   device?: string;
   accessUnlock?: {
+    username?: string;
     code: string;
     timestamp: string;
   };
@@ -127,8 +128,8 @@ export interface AllJourneyResponses {
   lastUpdated: string;
 }
 
-const STORAGE_KEY_JOURNEYS = 'birthday_journey_history';
-const STORAGE_KEY_ACTIVE_ID = 'birthday_active_journey_id';
+const STORAGE_KEY_JOURNEYS = 'birthday_shuttumani_real_journeys';
+const STORAGE_KEY_ACTIVE_ID = 'birthday_shuttumani_active_id';
 const STORAGE_KEY_LEGACY = 'birthday_all_journey_responses';
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -152,95 +153,18 @@ function getClientDeviceInfo(): string {
 
 // ── Journey Retrieval and Management ────────────────────────
 export function getAllJourneys(): JourneyRecord[] {
-  let journeys = safeLocalGet<JourneyRecord[]>(STORAGE_KEY_JOURNEYS, []);
-
-  // If empty, check if legacy responses exist and migrate to Journey #1
-  if (journeys.length === 0) {
-    const legacy = safeLocalGet<AllJourneyResponses | null>(STORAGE_KEY_LEGACY, null);
-    if (legacy && (legacy.quiz || legacy.timeCapsule || legacy.moreLikely || legacy.thisOrThat)) {
-      const migratedJourney: JourneyRecord = {
-        id: `journey-1-${Date.now()}`,
-        journeyNumber: 1,
-        status: 'Completed',
-        startedAt: legacy.lastUpdated || new Date().toISOString(),
-        completedAt: legacy.lastUpdated || new Date().toISOString(),
-        durationSeconds: 940,
-        durationFormatted: '15m 40s',
-        device: getClientDeviceInfo(),
-        accessUnlock: {
-          code: 'shuttumani051199',
-          timestamp: legacy.lastUpdated || new Date().toISOString(),
-        },
-        quiz: legacy.quiz
-          ? {
-              completedAt: legacy.quiz.completedAt,
-              score: legacy.quiz.score,
-              percentage: legacy.quiz.percentage,
-              totalFactual: legacy.quiz.totalFactual,
-              items: legacy.quiz.items.map((it, idx) => ({
-                questionId: it.questionId,
-                question: it.question,
-                category: config.quizQuestions.find((q) => q.id === it.questionId)?.category ?? 'General',
-                chosen: it.chosen,
-                correct: it.correct,
-                isCorrect: it.isCorrect,
-                answeredAt: new Date(Date.now() - (15 - idx) * 30000).toISOString(),
-              })),
-            }
-          : undefined,
-        moreLikely: legacy.moreLikely
-          ? {
-              completedAt: legacy.moreLikely.completedAt,
-              summary: legacy.moreLikely.summary,
-              items: legacy.moreLikely.items.map((it, idx) => ({
-                promptId: it.promptId,
-                text: it.text,
-                choice: it.choice,
-                answeredAt: new Date(Date.now() - (17 - idx) * 15000).toISOString(),
-              })),
-            }
-          : undefined,
-        thisOrThat: legacy.thisOrThat
-          ? {
-              completedAt: legacy.thisOrThat.completedAt,
-              summaryA: legacy.thisOrThat.items.filter((i) => i.chosen === i.optionA).length,
-              summaryB: legacy.thisOrThat.items.filter((i) => i.chosen === i.optionB).length,
-              items: legacy.thisOrThat.items.map((it, idx) => ({
-                choiceId: it.choiceId,
-                chosen: it.chosen,
-                optionA: it.optionA,
-                optionB: it.optionB,
-                answeredAt: new Date(Date.now() - (20 - idx) * 10000).toISOString(),
-              })),
-            }
-          : undefined,
-        timeCapsule: legacy.timeCapsule
-          ? {
-              submittedAt: legacy.timeCapsule.submittedAt,
-              totalWords: legacy.timeCapsule.items.reduce((acc, it) => acc + it.answer.split(/\s+/).filter(Boolean).length, 0),
-              items: legacy.timeCapsule.items.map((it, idx) => ({
-                promptId: it.promptId,
-                question: it.question,
-                answer: it.answer,
-                wordCount: it.answer.split(/\s+/).filter(Boolean).length,
-                charCount: it.answer.length,
-                answeredAt: new Date(Date.now() - (6 - idx) * 60000).toISOString(),
-              })),
-            }
-          : undefined,
-        lastUpdated: legacy.lastUpdated || new Date().toISOString(),
-      };
-      journeys = [migratedJourney];
-      safeLocalSet(STORAGE_KEY_JOURNEYS, journeys);
-    }
-  }
-
-  // If still empty (e.g. freshly opened browser without past local storage), auto-seed sample journeys so report is immediately rich
-  if (journeys.length === 0) {
-    journeys = seedSampleJourneys(10);
-  }
-
+  // Returns ONLY real journeys taken by birthday girl Shuttumani
+  const journeys = safeLocalGet<JourneyRecord[]>(STORAGE_KEY_JOURNEYS, []);
   return journeys;
+}
+
+export function clearAllJourneys(): JourneyRecord[] {
+  safeLocalSet(STORAGE_KEY_JOURNEYS, []);
+  safeLocalRemove(STORAGE_KEY_ACTIVE_ID);
+  safeLocalRemove(STORAGE_KEY_LEGACY);
+  safeLocalRemove('birthday_journey_history');
+  safeLocalRemove('tc_draft');
+  return [];
 }
 
 export function saveAllJourneys(journeys: JourneyRecord[]) {
@@ -361,10 +285,11 @@ export function completeActiveJourney(): JourneyRecord {
 }
 
 // ── Milestone & Chapter Tracking ────────────────────────────
-export function recordGateUnlock(code: string) {
+export function recordGateUnlock(code: string, username = 'shuttumani') {
   const now = new Date().toISOString();
   updateActiveJourney((j) => {
     j.accessUnlock = {
+      username,
       code,
       timestamp: now,
     };
@@ -373,7 +298,7 @@ export function recordGateUnlock(code: string) {
       key: 'gate_unlocked',
       label: 'Access Gate Unlocked',
       timestamp: now,
-      detail: `Passcode entered: "${code}"`,
+      detail: `Username: "${username}" | Passcode: "${code}"`,
     });
   });
 }
@@ -900,7 +825,7 @@ export function formatJourneyAsReportText(journey: JourneyRecord): string {
   lines.push(`Completed At: ${fmtDate(journey.completedAt)}`);
   lines.push(`Total Elapsed Time: ${journey.durationFormatted || 'N/A'}`);
   if (journey.accessUnlock) {
-    lines.push(`Gate Passcode Used: "${journey.accessUnlock.code}" at ${fmtDate(journey.accessUnlock.timestamp)}`);
+    lines.push(`Gate Credentials: Username "${journey.accessUnlock.username || 'shuttumani'}" | Passcode "${journey.accessUnlock.code}" at ${fmtDate(journey.accessUnlock.timestamp)}`);
   }
   lines.push(`================================================================\n`);
 

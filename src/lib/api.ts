@@ -11,7 +11,8 @@ import { safeLocalGet, safeLocalSet, safeLocalRemove } from '@/lib/utils';
 import { saveTimeCapsuleResponses, saveQuizResponses } from '@/lib/responsesStore';
 
 const SESSION_STORAGE_KEY = 'birthday_auth_session';
-const SECRET_ACCESS_CODE = 'shuttumani051199';
+export const SECRET_USERNAME = 'shuttumani';
+export const SECRET_ACCESS_CODE = 'shuttumani051199';
 
 // ── Session token persistence ─
 let _sessionToken: string | null = safeLocalGet<string | null>(SESSION_STORAGE_KEY, null);
@@ -36,22 +37,38 @@ export function hasSession(): boolean {
   return false;
 }
 
-// ── Access gate: verify secret code ───────────────────────
-export async function verifyAccessCode(
+// ── Access gate: verify username & secret code ─────────────
+export async function verifyAccessCredentials(
+  username: string,
   code: string
 ): Promise<AccessCheckResponse> {
+  const cleanUser = username.trim().toLowerCase();
   const cleanCode = code.trim().toLowerCase();
 
-  if (cleanCode === SECRET_ACCESS_CODE) {
-    const token = `auth_shuttumani_${Date.now()}`;
-    setSessionToken(token);
-    return { authorized: true, sessionToken: token };
+  if (cleanUser !== SECRET_USERNAME) {
+    return {
+      authorized: false,
+      error: "Hmm, that username doesn't look right. Only Shuttumani can enter 💕",
+    };
   }
 
-  return {
-    authorized: false,
-    error: "Hmm, that code doesn't seem right. Try again! 🥺",
-  };
+  if (cleanCode !== SECRET_ACCESS_CODE) {
+    return {
+      authorized: false,
+      error: "Secret password code doesn't match! Check your birthday date code 🥺",
+    };
+  }
+
+  const token = `auth_shuttumani_${Date.now()}`;
+  setSessionToken(token);
+  return { authorized: true, sessionToken: token };
+}
+
+export async function verifyAccessCode(
+  code: string,
+  username = 'shuttumani'
+): Promise<AccessCheckResponse> {
+  return verifyAccessCredentials(username, code);
 }
 
 // ── Submit quiz or time capsule (frontend-only, zero backend dependencies) ──
